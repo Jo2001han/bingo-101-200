@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bingo Virtual</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;700;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #0f0c29;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .container {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+  }
+
+  .card-number {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2.5rem;
+    color: #FFD700;
+    text-align: center;
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px rgba(255,215,0,0.5);
+    margin-bottom: 5px;
+  }
+
+  .card-title {
+    text-align: center;
+    color: rgba(255,255,255,0.6);
+    font-size: 0.85rem;
+    margin-bottom: 25px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* BINGO header row */
+  .bingo-header {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .bingo-header span {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.8rem;
+    text-align: center;
+    padding: 8px 0;
+    border-radius: 10px;
+    letter-spacing: 2px;
+  }
+
+  .bingo-header span:nth-child(1) { background: #e74c3c; color: #fff; }
+  .bingo-header span:nth-child(2) { background: #e67e22; color: #fff; }
+  .bingo-header span:nth-child(3) { background: #2ecc71; color: #fff; }
+  .bingo-header span:nth-child(4) { background: #3498db; color: #fff; }
+  .bingo-header span:nth-child(5) { background: #9b59b6; color: #fff; }
+
+  /* Grid of numbers */
+  .bingo-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+
+  .cell {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #fff;
+    transition: background 0.2s;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+  }
+
+  .cell:hover { background: rgba(255,255,255,0.18); }
+
+  .cell.marked {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #1a1a1a;
+    border-color: #FFD700;
+    box-shadow: 0 0 12px rgba(255,215,0,0.5);
+  }
+
+  .cell.free {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border-color: #2ecc71;
+    box-shadow: 0 0 12px rgba(46,204,113,0.4);
+  }
+
+  /* Bingo win banner */
+  .win-banner {
+    display: none;
+    margin-top: 20px;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    animation: pulse 1s infinite alternate;
+  }
+
+  .win-banner.show { display: block; }
+
+  .win-banner p {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 2rem;
+    color: #1a1a1a;
+    letter-spacing: 4px;
+  }
+
+  @keyframes pulse {
+    from { box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+    to   { box-shadow: 0 0 30px rgba(255,215,0,0.9); }
+  }
+
+  .reset-btn {
+    margin-top: 18px;
+    width: 100%;
+    padding: 12px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: background 0.2s;
+  }
+
+  .reset-btn:hover { background: rgba(255,255,255,0.2); }
+
+  /* Hidden: only show if hash matches */
+  .card-page { display: none; }
+  .card-page.active { display: block; }
+
+  /* Index page */
+  #index-page {
+    text-align: center;
+    color: #fff;
+  }
+  #index-page h1 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 3rem;
+    color: #FFD700;
+    letter-spacing: 6px;
+    margin-bottom: 10px;
+  }
+  #index-page p {
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <!-- Content rendered by JS -->
+</div>
+
+<script>
+// ── Seed-based deterministic RNG ──────────────────────────────────────────────
+function seededRand(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 0xffffffff;
+  };
+}
+
+// Generate a bingo card for card number N (101-200)
+function generateCard(n) {
+  const rand = seededRand(n * 7919); // unique seed per card
+  const ranges = [
+    [1,  15],  // B
+    [16, 30],  // I
+    [31, 45],  // N
+    [46, 60],  // G
+    [61, 75],  // O
+  ];
+
+  const cols = ranges.map(([lo, hi]) => {
+    const pool = [];
+    for (let i = lo; i <= hi; i++) pool.push(i);
+    // shuffle
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, 5);
+  });
+
+  // cols[col][row]  →  grid[row][col]
+  const grid = [];
+  for (let row = 0; row < 5; row++) {
+    const r = [];
+    for (let col = 0; col < 5; col++) {
+      r.push(cols[col][row]);
+    }
+    grid.push(r);
+  }
+  // Free space center
+  grid[2][2] = 'FREE';
+  return grid;
+}
+
+// ── Win detection ─────────────────────────────────────────────────────────────
+function checkWin(marked) {
+  const lines = [
+    // rows
+    [[0,0],[0,1],[0,2],[0,3],[0,4]],
+    [[1,0],[1,1],[1,2],[1,3],[1,4]],
+    [[2,0],[2,1],[2,2],[2,3],[2,4]],
+    [[3,0],[3,1],[3,2],[3,3],[3,4]],
+    [[4,0],[4,1],[4,2],[4,3],[4,4]],
+    // cols
+    [[0,0],[1,0],[2,0],[3,0],[4,0]],
+    [[0,1],[1,1],[2,1],[3,1],[4,1]],
+    [[0,2],[1,2],[2,2],[3,2],[4,2]],
+    [[0,3],[1,3],[2,3],[3,3],[4,3]],
+    [[0,4],[1,4],[2,4],[3,4],[4,4]],
+    // diagonals
+    [[0,0],[1,1],[2,2],[3,3],[4,4]],
+    [[0,4],[1,3],[2,2],[3,1],[4,0]],
+  ];
+  return lines.some(line => line.every(([r,c]) => marked[r][c]));
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderCard(n) {
+  const grid = generateCard(n);
+  const letters = ['B','I','N','G','O'];
+
+  // Marked state: 5x5 booleans; free space pre-marked
+  const marked = grid.map(row => row.map(v => v === 'FREE'));
+
+  const app = document.getElementById('app');
+
+  function buildHTML() {
+    const headerCells = letters.map(l => `<span>${l}</span>`).join('');
+    let gridCells = '';
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        const val = grid[r][c];
+        const isFree = val === 'FREE';
+        const isMarked = marked[r][c];
+        let cls = 'cell';
+        if (isFree) cls += ' free';
+        else if (isMarked) cls += ' marked';
+        gridCells += `<div class="${cls}" data-r="${r}" data-c="${c}">${isFree ? '⭐ FREE' : val}</div>`;
+      }
+    }
+
+    const won = checkWin(marked);
+
+    app.innerHTML = `
+      <div class="card-number">CARTÓN #${n}</div>
+      <div class="card-title">Bingo Virtual</div>
+      <div class="bingo-header">${headerCells}</div>
+      <div class="bingo-grid" id="grid">${gridCells}</div>
+      <div class="win-banner ${won ? 'show' : ''}" id="win-banner">
+        <p>🎉 ¡BINGO! 🎉</p>
+      </div>
+      <button class="reset-btn" id="reset-btn">🔄 Reiniciar cartón</button>
+    `;
+
+    // Events
+    document.getElementById('grid').querySelectorAll('.cell').forEach(cell => {
+      cell.addEventListener('click', () => {
+        const r = +cell.dataset.r, c = +cell.dataset.c;
+        if (grid[r][c] === 'FREE') return;
+        marked[r][c] = !marked[r][c];
+        buildHTML();
+      });
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      for (let r = 0; r < 5; r++)
+        for (let c = 0; c < 5; c++)
+          marked[r][c] = grid[r][c] === 'FREE';
+      buildHTML();
+    });
+  }
+
+  buildHTML();
+}
+
+// ── Router ────────────────────────────────────────────────────────────────────
+function route() {
+  const hash = window.location.hash.replace('#', '').trim();
+  const n = parseInt(hash, 10);
+  if (n >= 101 && n <= 200) {
+    renderCard(n);
+  } else {
+    // Index page
+    document.getElementById('app').innerHTML = `
+      <div id="index-page">
+        <h1>🎰 BINGO</h1>
+        <p>Escanea el QR de tu cartón para abrirlo.</p>
+        <p style="color:rgba(255,255,255,0.4);font-size:0.8rem;margin-top:30px;">Cartones #101 – #200</p>
+      </div>
+    `;
+  }
+}
+
+window.addEventListener('hashchange', route);
+route();
+</script>
+</body>
+</html>
